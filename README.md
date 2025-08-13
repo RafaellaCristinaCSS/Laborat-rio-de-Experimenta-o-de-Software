@@ -9,7 +9,7 @@ Além do código-fonte, este repositório também inclui um **arquivo CSV** cont
 ## Funcionalidades
 
 * Coleta automática de métricas e informações relevantes.
-* Exportação dos dados para um **arquivo CSV** estruturado.
+* Exportação dos dados para um arquivo CSV nomeado como: **repositorios_populares.csv**.
 * Colunas do CSV:
 
   * **Nome**
@@ -29,6 +29,6 @@ Além do código-fonte, este repositório também inclui um **arquivo CSV** cont
 
 ## Autores
 
-* **Rafael de Paiva Gomes**
 * **Gabriel Afonso Infante Vieira**
+* **Rafael de Paiva Gomes**
 * **Rafaella Cristina de Sousa Sacramento**
