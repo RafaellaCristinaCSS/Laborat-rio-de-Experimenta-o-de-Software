@@ -22,7 +22,7 @@ class Program
     httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("GitHubApiApp", "1.0"));
     httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", githubToken);
 
-    while (hasNextPage && totalFetched < 100)
+    while (hasNextPage && totalFetched < 1000)
     {
       string query = @$"
       {{
