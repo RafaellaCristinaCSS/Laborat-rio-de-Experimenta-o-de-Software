@@ -1,9 +1,16 @@
 # Consulta GraphQL para Repositórios do GitHub
 
-Este repositório contém o código desenvolvido em **C#** para atender à **Sprint 1** do trabalho da disciplina **Laboratório de Experimentação de Software**.
-O objetivo principal é realizar uma **consulta GraphQL** para obter informações de até **100 repositórios** do GitHub, coletando todas as métricas necessárias para responder às RQs do projeto.
-Além do código-fonte, este repositório também inclui um **arquivo CSV** contendo os dados obtidos automaticamente.
+Este repositório contém o código desenvolvido em **C#** como parte da **Sprint 2** da disciplina **Laboratório de Experimentação de Software**.
 
+O objetivo principal é realizar consultas **GraphQL** para coletar informações de até **1.000 repositórios** do GitHub, extraindo todas as métricas necessárias para responder às questões de pesquisa (RQs) do projeto.
+
+Além do código-fonte, este repositório inclui:
+
+* **repositorios_populares.csv** – arquivo contendo os dados coletados dos repositórios;
+* **PlanilhaDeCalculos.xlsx** – planilha com todas as fórmulas utilizadas para calcular os resultados obtidos;
+* **Relatorio.pdf** – relatório com as análises e conclusões baseadas nos dados coletados automaticamente.
+
+Este conjunto de arquivos permite tanto a reprodução do estudo quanto a análise detalhada das métricas obtidas.
 ---
 
 ## Funcionalidades
