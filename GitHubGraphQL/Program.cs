@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Collections.Generic;
 
+string a = "aa";
 class Program
 {
   static async Task Main(string[] args)
