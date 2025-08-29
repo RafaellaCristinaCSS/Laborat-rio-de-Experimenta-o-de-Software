@@ -8,7 +8,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Serialização JSON -->
     <PackageReference Include="System.Text.Json" Version="9.0.8" />
+    
+    <!-- Biblioteca de gráficos -->
+    <PackageReference Include="ScottPlot" Version="4.1.70" />
   </ItemGroup>
 
 </Project>
