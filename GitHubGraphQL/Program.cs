@@ -32,7 +32,7 @@ class Program
     /// <summary>
     /// Token de autenticação do GitHub. Deve ser preenchido pelo usuário.
     /// </summary>
-    string githubToken = "inserir_token_aqui";
+    string githubToken ="inserir_token_aqui";
     /// <summary>
     /// Endpoint da API GraphQL do GitHub.
     /// </summary>
