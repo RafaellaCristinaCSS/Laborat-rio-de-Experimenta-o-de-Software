@@ -30,7 +30,7 @@ class Program
     static async Task Main(string[] args)
     {
         // Token de autenticação do GitHub. Deve ser preenchido pelo usuário.
-        string githubToken = "inserir_token_aqui";
+        string githubToken = "inserir token aqui";
         // Endpoint da API GraphQL do GitHub.
         string endpoint = "https://api.github.com/graphql";
         // Lista para armazenar todos os repositórios coletados.
