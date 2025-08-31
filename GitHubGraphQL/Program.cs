@@ -15,7 +15,7 @@ class Program
 {
     static async Task Main(string[] args)
     {
-        string githubToken = "Inserir_Token_Aqui"; 
+        string githubToken = "inserir_token_aqui";
         string endpoint = "https://api.github.com/graphql";
         var allRepos = new List<Repository>();
         string? cursor = null;
@@ -26,7 +26,7 @@ class Program
         httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("GitHubApiApp", "1.0"));
         httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", githubToken);
 
-        while (hasNextPage && totalFetched < 100)
+        while (hasNextPage && totalFetched <1000)
         {
             string query = @$"
             {{
@@ -152,41 +152,108 @@ class Program
         Console.WriteLine($"CSV gerado em {filePath}");
 
         // --- GRÁFICOS COM SCOTTPLOT ---
-        var stars = allRepos.Select(r => (double)r.Stars).ToArray();
-        var forks = allRepos.Select(r => (double)r.Forks).ToArray();
-        var issues = allRepos.Select(r => (double)r.IssuesTotal).ToArray();
-        var langs = allRepos.Select(r => r.PrimaryLanguage ?? "Unknown").ToArray();
+        Console.WriteLine("Gerando gráficos...");
 
-        // 1. Heatmap Scatter
-        var plt1 = new ScottPlot.Plot(600, 400);
-        plt1.AddScatter(stars, forks, color: System.Drawing.Color.Blue, markerSize: 3);
-        plt1.Title("Stars x Forks");
-        plt1.XLabel("Stars");
-        plt1.YLabel("Forks");
-        plt1.SaveFig("heatmap_scatter.png");
+        // 1. Idade do repositório (calculado a partir da data de criação)
+        var plt1 = new ScottPlot.Plot(800, 500);
+        var repoAges = allRepos.Select(r => (DateTime.Now - r.CreatedAt).TotalDays).ToArray();
+        var repoNames = allRepos.Select(r => r.Name ?? "Unknown").ToArray();
+        
+        plt1.AddBar(repoAges, color: System.Drawing.Color.SkyBlue);
+        plt1.Title("Idade dos Repositórios (em dias)");
+        plt1.XLabel("Repositórios");
+        plt1.YLabel("Idade (dias)");
+        
+        // Adicionar labels dos repositórios no eixo X
+        var positions = Enumerable.Range(0, repoNames.Length).Select(i => (double)i).ToArray();
+        plt1.XAxis.ManualTickPositions(positions, repoNames);
+        
+        plt1.SaveFig("idade_repositorios.png");
+        Console.WriteLine("Gráfico 1 salvo: idade_repositorios.png");
 
-        // 2. Bubble Chart (Stars x Forks, tamanho = Issues, cor = linguagem)
+        // 2. Total de pull requests aceitas
         var plt2 = new ScottPlot.Plot(800, 500);
-        var langGroups = langs.Distinct().Take(10).ToList();
-        var colors = langGroups.Select((l, i) => System.Drawing.Color.FromArgb(255, (i*40)%256, (i*80)%256, (i*120)%256)).ToArray();
+        var pullRequests = allRepos.Select(r => (double)r.PullRequests).ToArray();
+        
+        plt2.AddBar(pullRequests, color: System.Drawing.Color.Green);
+        plt2.Title("Total de Pull Requests por Repositório");
+        plt2.XLabel("Repositórios");
+        plt2.YLabel("Número de Pull Requests");
+        
+        plt2.XAxis.ManualTickPositions(positions, repoNames);
+        
+        plt2.SaveFig("total_pull_requests.png");
+        Console.WriteLine("Gráfico 2 salvo: total_pull_requests.png");
 
-        for (int i = 0; i < allRepos.Count; i++)
-        {
-            var x = (double)allRepos[i].Stars;
-            var y = (double)allRepos[i].Forks;
-            var size = Math.Max(5, allRepos[i].IssuesTotal / 10.0); // bolha proporcional às issues
-            var colorIndex = langGroups.IndexOf(allRepos[i].PrimaryLanguage ?? "Unknown");
-            var color = colorIndex >= 0 ? colors[colorIndex] : System.Drawing.Color.Gray;
+        // 3. Total de releases
+        var plt3 = new ScottPlot.Plot(800, 500);
+        var releases = allRepos.Select(r => (double)r.Releases).ToArray();
+        
+        plt3.AddBar(releases, color: System.Drawing.Color.Orange);
+        plt3.Title("Total de Releases por Repositório");
+        plt3.XLabel("Repositórios");
+        plt3.YLabel("Número de Releases");
+        
+        plt3.XAxis.ManualTickPositions(positions, repoNames);
+        
+        plt3.SaveFig("total_releases.png");
+        Console.WriteLine("Gráfico 3 salvo: total_releases.png");
 
-            plt2.AddScatter(new double[] { x }, new double[] { y }, color, markerSize: (float)size);
-        }
+        // 4. Tempo até a última atualização (calculado a partir da data de última atualização)
+        var plt4 = new ScottPlot.Plot(800, 500);
+        var timeSinceUpdate = allRepos.Select(r => (DateTime.Now - r.UpdatedAt).TotalDays).ToArray();
+        
+        plt4.AddBar(timeSinceUpdate, color: System.Drawing.Color.Red);
+        plt4.Title("Tempo desde a Última Atualização (em dias)");
+        plt4.XLabel("Repositórios");
+        plt4.YLabel("Dias desde última atualização");
+        
+        plt4.XAxis.ManualTickPositions(positions, repoNames);
+        
+        plt4.SaveFig("tempo_ultima_atualizacao.png");
+        Console.WriteLine("Gráfico 4 salvo: tempo_ultima_atualizacao.png");
 
-        plt2.Title("Stars x Forks x Issues (Bubble Chart)");
-        plt2.XLabel("Stars");
-        plt2.YLabel("Forks");
-        plt2.SaveFig("bubble_chart.png");
+        // 5. Linguagem primária de cada repositório
+        var plt5 = new ScottPlot.Plot(800, 500);
+        var languages = allRepos.Select(r => r.PrimaryLanguage ?? "Unknown").ToArray();
+        var languageCounts = languages.GroupBy(l => l)
+                                     .Select(g => new { Language = g.Key, Count = g.Count() })
+                                     .OrderByDescending(x => x.Count)
+                                     .ToList();
+        
+        var langNames = languageCounts.Select(l => l.Language).ToArray();
+        var langCounts = languageCounts.Select(l => (double)l.Count).ToArray();
+        
+        plt5.AddBar(langCounts, color: System.Drawing.Color.Purple);
+        plt5.Title("Distribuição de Linguagens Primárias");
+        plt5.XLabel("Linguagens");
+        plt5.YLabel("Número de Repositórios");
+        
+        var langPositions = Enumerable.Range(0, langNames.Length).Select(i => (double)i).ToArray();
+        plt5.XAxis.ManualTickPositions(langPositions, langNames);
+        
+        plt5.SaveFig("linguagens_primarias.png");
+        Console.WriteLine("Gráfico 5 salvo: linguagens_primarias.png");
 
-        Console.WriteLine("Gráficos salvos: heatmap_scatter.png e bubble_chart.png");
+        // 6. Razão entre número de issues fechadas pelo total de issues
+        var plt6 = new ScottPlot.Plot(800, 500);
+        var issueRatios = allRepos.Select(r => 
+            r.IssuesTotal > 0 ? (double)r.IssuesClosed / r.IssuesTotal : 0.0).ToArray();
+        
+        plt6.AddBar(issueRatios, color: System.Drawing.Color.Teal);
+        plt6.Title("Razão de Issues Fechadas por Repositório");
+        plt6.XLabel("Repositórios");
+        plt6.YLabel("Razão (Issues Fechadas / Total Issues)");
+        
+        plt6.XAxis.ManualTickPositions(positions, repoNames);
+        
+        // Adicionar linha de referência em 0.5 (50%)
+        plt6.AddHorizontalLine(0.5, color: System.Drawing.Color.Red, style: LineStyle.Dash);
+        
+        plt6.SaveFig("razao_issues_fechadas.png");
+        Console.WriteLine("Gráfico 6 salvo: razao_issues_fechadas.png");
+
+        Console.WriteLine("Todos os gráficos foram gerados com sucesso!");
     }
 
     class Repository
