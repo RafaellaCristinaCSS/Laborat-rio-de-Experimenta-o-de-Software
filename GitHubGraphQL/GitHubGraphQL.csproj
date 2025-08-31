@@ -1,25 +1,14 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-
   <OutputType>Exe</OutputType>
   <TargetFramework>net9.0</TargetFramework>
   <ImplicitUsings>enable</ImplicitUsings>
   <Nullable>enable</Nullable>
-
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Serialização JSON -->
     <PackageReference Include="System.Text.Json" Version="9.0.8" />
-    
-    <!-- Biblioteca de gráficos -->
-    <PackageReference Include="ScottPlot" Version="4.1.70" />
   </ItemGroup>
 
 </Project>
