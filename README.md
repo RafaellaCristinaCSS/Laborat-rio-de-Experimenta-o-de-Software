@@ -101,9 +101,10 @@ A análise dos dados, baseada em valores de **mediana**, revelou o seguinte perf
 | **RQ03: Frequência de Releases** | Nº Total de Releases                     | 35,5                 |
 | **RQ04: Atualizações**           | Tempo desde a Última Atualização (dias)  | Baixo¹               |
 | **RQ05: Linguagens**             | Linguagem Predominante                   | Python               |
-| **RQ06: Gestão de Issues**       | Razão de Issues Fechadas / Totais        | tem que mudar        |
+| **RQ06: Gestão de Issues**       | Razão de Issues Fechadas / Totais        | 0.86²                |
 
 > ¹ A maioria dos projetos é atualizada numa questão de dias.  
+> ² Cerca de 86% das issues são concluidas.  
 
 O relatório completo com a discussão detalhada pode ser encontrado no ficheiro `Relatorio.pdf`.
 
