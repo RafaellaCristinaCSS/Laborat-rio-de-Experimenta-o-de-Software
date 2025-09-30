@@ -22,98 +22,102 @@ class Program
     httpClient.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("GitHubApiApp", "1.0"));
     httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", githubToken);
 
-    while (hasNextPage && totalFetched < 100)
+    while (hasNextPage && totalFetched < 1000)
     {
       string query = @$"
-      {{
-        search(query: ""stars:>0 sort:stars-desc"", type: REPOSITORY, first: 10{(cursor != null ? $@", after: ""{cursor}""" : "")}) {{
-          pageInfo {{
-            hasNextPage
-            endCursor
-          }}
-          nodes {{
-            ... on Repository {{
-              name
-              description
-              url
-              stargazerCount
-              forkCount
-              updatedAt
-              createdAt
-              primaryLanguage {{
-                name
+            {{
+              search(query: ""language:Java sort:stars"", type: REPOSITORY, first: 20, after: {FormatCursor(cursor)}) {{
+                pageInfo {{
+                  hasNextPage
+                  endCursor
+                }}
+                nodes {{
+                  ... on Repository {{
+                    name
+                    nameWithOwner
+                    description
+                    url
+                    stargazerCount
+                    forkCount
+                    createdAt
+                    updatedAt
+                    primaryLanguage {{
+                      name
+                    }}
+                    pullRequests(states: MERGED) {{
+                      totalCount
+                    }}
+                    issues {{
+                      totalCount
+                    }}
+                    issuesClosed: issues(states: CLOSED) {{
+                      totalCount
+                    }}
+                    releases {{
+                      totalCount
+                    }}
+                    defaultBranchRef {{
+                      target {{
+                        ... on Commit {{
+                          history {{
+                            totalCount
+                          }}
+                        }}
+                      }}
+                    }}
+                  }}
+                }}
               }}
-              issues {{
-                totalCount
-              }}
-              closedIssues: issues(states: CLOSED) {{
-                totalCount
-              }}
-              pullRequests {{
-                totalCount
-              }}
-              releases {{
-                totalCount
-              }}
-            }}
-          }}
-        }}
-      }}";
+            }}";
 
-      var requestBody = new { query };
-      var jsonContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
-      HttpResponseMessage response;
-      try
-      {
-        response = await httpClient.PostAsync(endpoint, jsonContent);
-        response.EnsureSuccessStatusCode();
-      }
-      catch (Exception ex)
-      {
-        Console.WriteLine($"erro: {ex.Message}");
-        return;
-      }
+      var jsonDoc = await RunQuery(httpClient, endpoint, query);
+      if (jsonDoc == null) return;
 
-      var responseBody = await response.Content.ReadAsStringAsync();
-      using var jsonDoc = JsonDocument.Parse(responseBody);
-      var root = jsonDoc.RootElement;
+      var data = jsonDoc.RootElement.GetProperty("data").GetProperty("search");
 
-      if (root.TryGetProperty("errors", out var errors))
-      {
-        Console.WriteLine("erro na API:");
-        Console.WriteLine(errors.ToString());
-        return;
-      }
+      hasNextPage = data.GetProperty("pageInfo").GetProperty("hasNextPage").GetBoolean();
+      cursor = data.GetProperty("pageInfo").GetProperty("endCursor").GetString();
 
-      if (!root.TryGetProperty("data", out var dataElement))
-      {
-        Console.WriteLine(responseBody);
-        return;
-      }
-
-      var searchElement = dataElement.GetProperty("search");
-      hasNextPage = searchElement.GetProperty("pageInfo").GetProperty("hasNextPage").GetBoolean();
-      cursor = searchElement.GetProperty("pageInfo").GetProperty("endCursor").GetString();
-
-      var nodes = searchElement.GetProperty("nodes").EnumerateArray();
-      Console.WriteLine($"Página carregada: {searchElement.GetProperty("nodes").GetArrayLength()} repositórios");
+      var nodes = data.GetProperty("nodes").EnumerateArray();
+      Console.WriteLine($"Página carregada: {nodes.Count()} repositórios");
 
       foreach (var node in nodes)
       {
+        int commits = 0;
+        try
+        {
+          commits = node
+              .GetProperty("defaultBranchRef")
+              .GetProperty("target")
+              .GetProperty("history")
+              .GetProperty("totalCount")
+              .GetInt32();
+        }
+        catch
+        {
+          // se não tiver branch padrão ou history
+        }
+
         allRepos.Add(new Repository
         {
           Name = node.GetProperty("name").GetString() ?? "",
+          NameWithOwner = node.GetProperty("nameWithOwner").GetString() ?? "",
           Description = node.GetProperty("description").GetString() ?? "",
           Url = node.GetProperty("url").GetString() ?? "",
           Stars = node.GetProperty("stargazerCount").GetInt32(),
           Forks = node.GetProperty("forkCount").GetInt32(),
-          UpdatedAt = node.GetProperty("updatedAt").GetDateTime(),
           CreatedAt = node.GetProperty("createdAt").GetDateTime(),
-          PrimaryLanguage = node.TryGetProperty("primaryLanguage", out var lang) && lang.ValueKind == JsonValueKind.Object && lang.TryGetProperty("name", out var langName) ? langName.GetString() ?? "" : "",
+          UpdatedAt = node.GetProperty("updatedAt").GetDateTime(),
+          PrimaryLanguage = node.TryGetProperty("primaryLanguage", out var lang) &&
+                              lang.ValueKind == JsonValueKind.Object &&
+                              lang.TryGetProperty("name", out var langName)
+                                  ? langName.GetString() ?? ""
+                                  : "",
           IssuesTotal = node.GetProperty("issues").GetProperty("totalCount").GetInt32(),
-          IssuesClosed = node.GetProperty("closedIssues").GetProperty("totalCount").GetInt32(),
+          IssuesClosed = node.GetProperty("issuesClosed").GetProperty("totalCount").GetInt32(),
           PullRequests = node.GetProperty("pullRequests").GetProperty("totalCount").GetInt32(),
-          Releases = node.GetProperty("releases").GetProperty("totalCount").GetInt32()
+          Releases = node.GetProperty("releases").GetProperty("totalCount").GetInt32(),
+          Commits = commits
         });
       }
 
@@ -121,42 +125,113 @@ class Program
       Console.WriteLine($"Total acumulado: {totalFetched}");
     }
 
-    Console.WriteLine($"repositorios obtidos: {allRepos.Count}");
+    Console.WriteLine($"Repositorios obtidos: {allRepos.Count}");
+
+    // agora ordenamos pelos mais engajados
+    var top20 = allRepos
+        .OrderByDescending(r => r.EngagementScore)
+        .Take(20)
+        .ToList();
 
     var csvLines = new List<string>
-    {
-      "Nome,Descrição,URL,Stars,Forks,Criado Em,Última Atualização,Linguagem,Issues Totais,Issues Fechadas,PRs,Releases"
-    };
+        {
+            "Nome,NomeCompleto,Descrição,URL,Stars,Forks,Criado Em,Última Atualização,Linguagem,Issues Totais,Issues Fechadas,PRs,Releases,Commits,Engajamento"
+        };
 
-    foreach (var repo in allRepos)
+    foreach (var repo in top20)
     {
       string descEscaped = repo.Description?.Replace("\"", "\"\"") ?? "";
       string nameEscaped = repo.Name?.Replace("\"", "\"\"") ?? "";
       string updatedAtStr = repo.UpdatedAt.ToString("yyyy-MM-dd HH:mm:ss");
       string createdAtStr = repo.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss");
 
-      csvLines.Add($"\"{nameEscaped}\",\"{descEscaped}\",{repo.Url},{repo.Stars},{repo.Forks},{createdAtStr},{updatedAtStr},\"{repo.PrimaryLanguage}\",{repo.IssuesTotal},{repo.IssuesClosed},{repo.PullRequests},{repo.Releases}");
+      csvLines.Add(
+          $"\"{nameEscaped}\",\"{repo.NameWithOwner}\",\"{descEscaped}\",{repo.Url},{repo.Stars},{repo.Forks},{createdAtStr},{updatedAtStr},\"{repo.PrimaryLanguage}\",{repo.IssuesTotal},{repo.IssuesClosed},{repo.PullRequests},{repo.Releases},{repo.Commits},{repo.EngagementScore}"
+      );
     }
 
-    string filePath = Path.Combine(Directory.GetCurrentDirectory(), "repositorios_populares.csv");
+    string filePath = Path.Combine(Directory.GetCurrentDirectory(), "repositoriosJavaTop20.csv");
     await File.WriteAllLinesAsync(filePath, csvLines, Encoding.UTF8);
 
-    Console.WriteLine($"finalizado");
+    Console.WriteLine("Finalizado");
   }
+
+  static async Task<JsonDocument?> RunQuery(HttpClient client, string endpoint, string query, int maxRetries = 3)
+  {
+    var requestBody = new { query };
+    var jsonContent = new StringContent(JsonSerializer.Serialize(requestBody), Encoding.UTF8, "application/json");
+
+    for (int attempt = 1; attempt <= maxRetries; attempt++)
+    {
+      try
+      {
+        var response = await client.PostAsync(endpoint, jsonContent);
+
+        if (response.IsSuccessStatusCode)
+        {
+          var responseBody = await response.Content.ReadAsStringAsync();
+          var jsonDoc = JsonDocument.Parse(responseBody);
+
+          if (jsonDoc.RootElement.TryGetProperty("errors", out var errors))
+          {
+            Console.WriteLine("Erro na API:");
+            Console.WriteLine(errors.ToString());
+            return null;
+          }
+
+          return jsonDoc;
+        }
+
+        // Se for 502 (Bad Gateway), tenta novamente com backoff
+        if ((int)response.StatusCode == 502)
+        {
+          Console.WriteLine($"Erro 502 (Bad Gateway), tentativa {attempt}/{maxRetries}");
+          if (attempt < maxRetries)
+          {
+            await Task.Delay(2000 * attempt); // backoff exponencial simples
+            continue;
+          }
+        }
+
+        response.EnsureSuccessStatusCode(); // lança exceção para outros códigos
+      }
+      catch (Exception ex)
+      {
+        Console.WriteLine($"Erro na tentativa {attempt}: {ex.Message}");
+        if (attempt < maxRetries)
+        {
+          await Task.Delay(2000 * attempt);
+          continue;
+        }
+        return null;
+      }
+    }
+
+    return null; // se todas as tentativas falharem
+  }
+  static string FormatCursor(string? cursor)
+  {
+    return cursor == null ? "null" : $"\"{cursor}\"";
+  }
+
 
   class Repository
   {
     public string? Name { get; set; }
+    public string? NameWithOwner { get; set; }
     public string? Description { get; set; }
     public string? Url { get; set; }
     public int Stars { get; set; }
     public int Forks { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public string? PrimaryLanguage { get; set; }
     public int PullRequests { get; set; }
-    public int Releases { get; set; }
     public int IssuesTotal { get; set; }
     public int IssuesClosed { get; set; }
-    public string? PrimaryLanguage { get; set; }
+    public int Releases { get; set; }
+    public int Commits { get; set; }
+    public int EngagementScore => Commits + PullRequests + IssuesClosed; /// Calcula uma métrica de engajamento simples somando commits, PRs e issues fechadas.
   }
+
 }
