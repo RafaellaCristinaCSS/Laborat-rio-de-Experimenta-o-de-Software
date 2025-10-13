@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Collections.Generic;
 using System.IO;
 using System.Threading.Tasks;
+using System.Threading;
 
 namespace CaracterizandoAtividadeCodeReview
 {
@@ -18,24 +19,29 @@ namespace CaracterizandoAtividadeCodeReview
       client.DefaultRequestHeaders.Add("User-Agent", "GitHubGraphQLClient");
       client.DefaultRequestHeaders.Add("Authorization", $"Bearer {GitHubToken}");
 
-      // Busca até 200 repositórios com ≥100 PRs
       var repositorios = await GetPopularRepositories(200);
       Console.WriteLine($"Selecionados {repositorios.Count} repositórios.");
 
-      if (repositorios.Count == 0)
+      string outputFile = "dataset_pull_requests.csv";
+      bool headerWritten = false;
+
+      foreach (var repo in repositorios)
       {
-        Console.WriteLine("Nenhum repositório encontrado. Verifique o token ou a API.");
-        return;
+        Console.WriteLine($"\n🔍 Coletando PRs de {repo.Owner}/{repo.Name}...");
+        var prs = await GetPullRequests(repo.Owner, repo.Name, maxPages: 3);
+
+        if (prs.Count > 0)
+        {
+          SaveToCsv(outputFile, prs, repo, headerWritten);
+          headerWritten = true;
+          Console.WriteLine($"✔ {prs.Count} PRs adicionados ao dataset.");
+        }
+
+        // pequena pausa entre repositórios para evitar limite da API
+        await Task.Delay(2000);
       }
 
-      // Exemplo: pegar os PRs do primeiro repo
-      var primeiroRepo = repositorios[0];
-      Console.WriteLine($"Coletando PRs do repositório: {primeiroRepo.Owner}/{primeiroRepo.Name}");
-
-      var prs = await GetPullRequests(primeiroRepo.Owner, primeiroRepo.Name, maxPages: 3);
-
-      SaveToCsv("pull_requests.csv", prs);
-      Console.WriteLine("Arquivo CSV gerado com sucesso!");
+      Console.WriteLine("\n✅ Coleta concluída. Dataset completo gerado!");
     }
 
     // -------------------------------
@@ -75,20 +81,13 @@ namespace CaracterizandoAtividadeCodeReview
         using var doc = JsonDocument.Parse(json);
         var root = doc.RootElement;
 
-        // Verifica erros da API
         if (root.TryGetProperty("errors", out var errors))
         {
           Console.WriteLine("Erro da API: " + errors.ToString());
-          return reposList;
+          break;
         }
 
-        if (!root.TryGetProperty("data", out var data) || !data.TryGetProperty("search", out var search))
-        {
-          Console.WriteLine("Não veio 'data.search' na resposta");
-          return reposList;
-        }
-
-        var nodes = search.GetProperty("nodes");
+        var nodes = root.GetProperty("data").GetProperty("search").GetProperty("nodes");
 
         foreach (var node in nodes.EnumerateArray())
         {
@@ -107,7 +106,7 @@ namespace CaracterizandoAtividadeCodeReview
           }
         }
 
-        var pageInfo = search.GetProperty("pageInfo");
+        var pageInfo = root.GetProperty("data").GetProperty("search").GetProperty("pageInfo");
         hasNextPage = pageInfo.GetProperty("hasNextPage").GetBoolean();
         cursor = pageInfo.GetProperty("endCursor").GetString();
       }
@@ -140,6 +139,7 @@ namespace CaracterizandoAtividadeCodeReview
                         additions
                         deletions
                         changedFiles
+                        state
                         reviews { totalCount }
                         comments { totalCount }
                         participants { totalCount }
@@ -165,23 +165,19 @@ namespace CaracterizandoAtividadeCodeReview
           break;
         }
 
-        if (!root.TryGetProperty("data", out var data) || !data.TryGetProperty("repository", out var repoNode))
-        {
-          Console.WriteLine("Não veio 'data.repository' na resposta");
-          break;
-        }
-
-        if (!repoNode.TryGetProperty("pullRequests", out var pullRequests))
-          break;
+        var repoNode = root.GetProperty("data").GetProperty("repository");
+        var pullRequests = repoNode.GetProperty("pullRequests");
 
         foreach (var pr in pullRequests.GetProperty("nodes").EnumerateArray())
         {
+          if (pr.GetProperty("closedAt").ValueKind == JsonValueKind.Null) continue;
+
           int reviews = pr.GetProperty("reviews").GetProperty("totalCount").GetInt32();
           DateTime created = pr.GetProperty("createdAt").GetDateTime();
           DateTime closed = pr.GetProperty("closedAt").GetDateTime();
           double reviewTime = (closed - created).TotalHours;
 
-          if (reviewTime >= 1)
+          if (reviewTime >= 1 && reviews >= 1)
           {
             prList.Add(new PullRequestData
             {
@@ -196,7 +192,8 @@ namespace CaracterizandoAtividadeCodeReview
               ChangedFiles = pr.GetProperty("changedFiles").GetInt32(),
               Reviews = reviews,
               Comments = pr.GetProperty("comments").GetProperty("totalCount").GetInt32(),
-              Participants = pr.GetProperty("participants").GetProperty("totalCount").GetInt32()
+              Participants = pr.GetProperty("participants").GetProperty("totalCount").GetInt32(),
+              Status = pr.GetProperty("state").GetString() ?? ""
             });
           }
         }
@@ -213,21 +210,21 @@ namespace CaracterizandoAtividadeCodeReview
     // -------------------------------
     // Salvar em CSV
     // -------------------------------
-    public static void SaveToCsv(string filePath, List<PullRequestData> prs)
+    public static void SaveToCsv(string filePath, List<PullRequestData> prs, RepositoryData repo, bool append)
     {
-      using var writer = new StreamWriter(filePath);
-      writer.WriteLine("Number,Title,BodyLength,CreatedAt,ClosedAt,ReviewTimeHours,Additions,Deletions,ChangedFiles,Reviews,Comments,Participants");
+      using var writer = new StreamWriter(filePath, append);
+      if (!append)
+      {
+        writer.WriteLine("Repository,Number,Title,BodyLength,CreatedAt,ClosedAt,ReviewTimeHours,Additions,Deletions,ChangedFiles,Reviews,Comments,Participants,Status");
+      }
 
       foreach (var pr in prs)
       {
-        writer.WriteLine($"{pr.Number},\"{pr.Title.Replace("\"", "'")}\",{pr.BodyLength},{pr.CreatedAt},{pr.ClosedAt},{pr.ReviewTimeHours},{pr.Additions},{pr.Deletions},{pr.ChangedFiles},{pr.Reviews},{pr.Comments},{pr.Participants}");
+        writer.WriteLine($"{repo.Owner}/{repo.Name},{pr.Number},\"{pr.Title.Replace("\"", "'")}\",{pr.BodyLength},{pr.CreatedAt},{pr.ClosedAt},{pr.ReviewTimeHours},{pr.Additions},{pr.Deletions},{pr.ChangedFiles},{pr.Reviews},{pr.Comments},{pr.Participants},{pr.Status}");
       }
     }
   }
 
-  // -------------------------------
-  // Modelos de dados
-  // -------------------------------
   public class PullRequestData
   {
     public int Number { get; set; }
@@ -242,6 +239,7 @@ namespace CaracterizandoAtividadeCodeReview
     public int Reviews { get; set; }
     public int Comments { get; set; }
     public int Participants { get; set; }
+    public string Status { get; set; } = "";
   }
 
   public class RepositoryData
