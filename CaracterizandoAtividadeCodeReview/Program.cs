@@ -375,7 +375,14 @@ namespace CaracterizandoAtividadeCodeReview
         if (fields.Count == 0) continue;
 
         string? repo = idxRepository >= 0 && idxRepository < fields.Count ? fields[idxRepository] : null;
-        string? status = idxStatus >= 0 && idxStatus < fields.Count ? fields[idxStatus] : null;
+        // Robust status detection: prefer the column index, but fall back to searching for MERGED/CLOSED
+        string? status = null;
+        if (idxStatus >= 0 && idxStatus < fields.Count) status = fields[idxStatus];
+        if (string.IsNullOrWhiteSpace(status) || !(status.Trim().Equals("MERGED", StringComparison.OrdinalIgnoreCase) || status.Trim().Equals("CLOSED", StringComparison.OrdinalIgnoreCase)))
+        {
+          var candidate = fields.FirstOrDefault(f => !string.IsNullOrWhiteSpace(f) && (f.Trim().Equals("MERGED", StringComparison.OrdinalIgnoreCase) || f.Trim().Equals("CLOSED", StringComparison.OrdinalIgnoreCase)));
+          if (!string.IsNullOrWhiteSpace(candidate)) status = candidate;
+        }
         string createdStr = idxCreatedAt >= 0 && idxCreatedAt < fields.Count ? fields[idxCreatedAt] : (fields.Count > 3 ? fields[3] : "");
         string reviewTimeStr = idxReviewTime >= 0 && idxReviewTime < fields.Count ? fields[idxReviewTime] : (fields.Count > 5 ? fields[5] : "");
         string additionsStr = idxAdditions >= 0 && idxAdditions < fields.Count ? fields[idxAdditions] : (fields.Count > 6 ? fields[6] : "");
@@ -587,6 +594,7 @@ namespace CaracterizandoAtividadeCodeReview
   pltStatus.Title("Proporção de Status (MERGED vs CLOSED)");
   pltStatus.YLabel("Quantidade");
   SavePlot(pltStatus, "status_proportion.png");
+  Console.WriteLine("[status-keys] " + string.Join(",", statusCounts.Keys));
 
         string[] metrics = new[] { "Additions", "ChangedFiles", "ReviewTimeHours", "BodyLength", "Comments", "Participants" };
         for (int m = 0; m < metrics.Length; m++)
@@ -597,7 +605,7 @@ namespace CaracterizandoAtividadeCodeReview
           for (int i = 0; i < statuses.Count; i++)
           {
             if (string.IsNullOrWhiteSpace(statuses[i])) continue;
-            string st = statuses[i]!.ToUpperInvariant();
+            string st = statuses[i]!.Trim().ToUpperInvariant();
             double val = 0;
             switch (metric)
             {
@@ -608,10 +616,11 @@ namespace CaracterizandoAtividadeCodeReview
               case "Comments": val = comments[i]; break;
               case "Participants": val = participants[i]; break;
             }
-            if (st.Contains("MERG")) mergedVals.Add(val);
+            if (st.StartsWith("MERG")) mergedVals.Add(val);
             else closedVals.Add(val);
           }
 
+          Console.WriteLine($"[boxplot-pre] {metric}: merged={mergedVals.Count}, closed={closedVals.Count}");
           if (mergedVals.Count == 0 || closedVals.Count == 0) continue;
 
           double[] medians = new double[2];
@@ -631,6 +640,7 @@ namespace CaracterizandoAtividadeCodeReview
 
           FillStats(mergedVals, 0);
           FillStats(closedVals, 1);
+          Console.WriteLine($"[boxplot] {metric}: merged={mergedVals.Count}, closed={closedVals.Count}");
 
           var pltBox = new ScottPlot.Plot(800, 600);
           double[] xsBox = new double[] { 0, 1 };
