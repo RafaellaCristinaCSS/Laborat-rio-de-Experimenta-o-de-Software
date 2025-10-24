@@ -1,0 +1,21 @@
+Repository,Number,Title,BodyLength,CreatedAt,ClosedAt,ReviewTimeHours,Additions,Deletions,ChangedFiles,Reviews,Comments,Participants,Status
+codecrafters-io/build-your-own-x,10,"readme: Add my tutorial on shell",193,11/05/2018 10:08:57,12/05/2018 07:55:36,21,7775,1,0,1,3,1,2,MERGED
+codecrafters-io/build-your-own-x,16,"Add: Generate SVG images in C",0,12/05/2018 08:21:04,13/05/2018 10:53:26,26,539444444444445,1,0,1,1,1,2,CLOSED
+codecrafters-io/build-your-own-x,35,"Add 'Build your own Window Manager'",0,13/05/2018 14:44:31,14/05/2018 06:51:54,16,123055555555556,1,0,1,1,1,2,MERGED
+codecrafters-io/build-your-own-x,59,"added 'Build your own CI server' title & one item",74,14/05/2018 14:37:35,15/05/2018 13:35:32,22,965833333333332,1,0,1,3,1,2,MERGED
+codecrafters-io/build-your-own-x,63,"Update README.md",19,14/05/2018 17:30:12,14/05/2018 18:55:00,1,4133333333333333,2,1,1,2,1,2,MERGED
+codecrafters-io/build-your-own-x,137,"Added a New Category : Text Editor",104,24/05/2018 05:49:20,24/05/2018 09:21:06,3,5294444444444446,9,1,1,1,1,3,MERGED
+codecrafters-io/build-your-own-x,211,"Found a Web site hosting these tutorials, want to add a link",244,24/06/2018 09:09:39,29/06/2018 10:33:16,121,39361111111111,2,0,1,1,1,3,CLOSED
+codecrafters-io/build-your-own-x,343,"Add Build your own Front-end Framework re-implement react fiber",0,27/03/2019 02:34:20,07/10/2019 02:28:58,4655,910555555555,1,0,1,1,1,3,CLOSED
+codecrafters-io/build-your-own-x,349,"Added a tutorial: Lest's build a NodeJS micro framework",68,13/04/2019 12:06:48,25/07/2024 17:59:41,46325,88138888889,1,0,1,1,1,2,CLOSED
+codecrafters-io/build-your-own-x,373,"Microcontrollers - Design and Implementation added",206,12/09/2019 16:41:30,02/10/2025 09:15:48,53080,57166666666,0,0,0,1,0,2,CLOSED
+codecrafters-io/build-your-own-x,380,"Add 'Twitter Bot Tutorial-Node.js and Processing'",0,06/10/2019 15:01:26,30/10/2020 19:20:29,9364,3175,1,0,1,1,1,3,CLOSED
+codecrafters-io/build-your-own-x,404,"Add an article about monadic parser combinators in C#",0,10/11/2019 21:06:49,28/11/2022 09:34:36,26724,463055555556,1,0,1,1,0,2,CLOSED
+codecrafters-io/build-your-own-x,425,"Add Write your own Excel in 100 lines of F#",0,07/02/2020 13:37:24,30/07/2023 08:45:16,30451,13111111111,1,0,1,1,1,2,CLOSED
+codecrafters-io/build-your-own-x,512,"Fix a broken link with archive",0,27/07/2020 02:13:06,12/02/2024 22:30:30,31100,29,2,2,1,1,0,2,CLOSED
+codecrafters-io/build-your-own-x,514,"Update readme",173,02/08/2020 21:17:08,16/07/2023 16:00:52,25866,72888888889,1,0,1,1,0,2,CLOSED
+codecrafters-io/build-your-own-x,534,"Add Web App Server in Golang",150,01/10/2020 12:55:06,25/10/2020 18:24:41,581,4930555555555,3,3,1,1,0,3,CLOSED
+codecrafters-io/build-your-own-x,536,"Add Test Collision With Separating Axis Theorem in JavaScript",11,03/10/2020 19:26:47,02/12/2021 14:21:40,10194,914722222222,1,0,1,1,0,2,CLOSED
+codecrafters-io/build-your-own-x,542,"Add link to 'ugit: Building Git Yourself'",573,11/10/2020 11:29:49,31/01/2023 07:38:01,20204,136666666665,1,0,1,1,0,3,MERGED
+codecrafters-io/build-your-own-x,551,"Add Ray Tracing in One Weekend",188,17/11/2020 02:38:14,31/01/2023 07:44:39,19325,106944444444,1,0,1,2,0,3,MERGED
+codecrafters-io/build-your-own-x,634,"Add a tutorial about writing a Tetris game.",60,16/06/2021 14:11:33,29/08/2021 15:42:17,1777,5122222222221,1,0,1,1,0,2,CLOSED
